@@ -1,14 +1,16 @@
 import multer from "multer";
 import express from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import fs from "fs";
-import query from "../util/query.js";
 import dotenv from "dotenv";
+import query from "../util/query.js";
+
 dotenv.config();
 
 const router = express.Router();
 router.use(express.json());
-const upload = multer({ dest: "./uploads/" });
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -27,15 +29,15 @@ const generationConfigText = {
 
 router.post("/compare", upload.single("image"), async (req, res) => {
   try {
-    const imagepath = req.file.path;
-    const imagebuffer = fs.readFileSync(imagepath);
-    const result = await query(imagebuffer);
+    const imageBuffer = req.file.buffer;
+
+    const result = await query(imageBuffer);
     const highest = result.reduce((max, curr) =>
       curr.score > max.score ? curr : max
     );
-    fs.unlinkSync(imagepath);
 
     const prompt = `Explain about ${highest.label} in major points. Shorten each point into 2 subpoints and keep the material concise and containing info about causes and general trivia. Total word should not be more than 100.`;
+
     const chatSession = modelText.startChat({ generationConfigText });
     const inforesult = await chatSession.sendMessage(prompt);
     const candidates = inforesult.response.candidates;
@@ -51,8 +53,8 @@ router.post("/compare", upload.single("image"), async (req, res) => {
 
     return res.status(200).json({ allresult: result, info: outputs[0].data });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: err });
+    console.error(err);
+    res.status(500).json({ message: err.message || "Internal Server Error" });
   }
 });
 
