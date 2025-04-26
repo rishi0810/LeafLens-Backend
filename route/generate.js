@@ -30,8 +30,9 @@ const generationConfigText = {
 router.post("/compare", upload.single("image"), async (req, res) => {
   try {
     const imageBuffer = req.file.buffer;
-
+   
     const result = await query(imageBuffer);
+   
     const highest = result.reduce((max, curr) =>
       curr.score > max.score ? curr : max
     );
