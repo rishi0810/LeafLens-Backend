@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import axios from "axios";
 
 dotenv.config();
 
@@ -11,19 +10,20 @@ async function query(imageBuffer) {
 
   while (attempt < MAX_RETRIES) {
     try {
-      const response = await axios.post(
-        "https://router.huggingface.co/hf-inference/models/Diginsa/Plant-Disease-Detection-Project",
-        imageBuffer,
+      const response = await fetch(
+        "https://router.huggingface.co/hf-inference/models/linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification",
         {
+          method: "POST",
           headers: {
             Authorization: `Bearer ${hfkey}`,
             "Content-Type": "image/jpeg",
           },
-          responseType: "json",
+          body: imageBuffer,
         }
       );
 
-      return response.data;
+      const result = await response.json();
+      return result;
     } catch (err) {
       console.error(`Attempt ${attempt + 1} failed:`, err.message);
       attempt++;
