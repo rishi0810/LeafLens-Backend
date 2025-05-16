@@ -1,8 +1,8 @@
 import multer from "multer";
 import express from "express";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
 import query from "../util/query.js";
+import fetch from "node-fetch";
 
 dotenv.config();
 
@@ -26,20 +26,6 @@ if (!process.env.GEMINI_API_KEY) {
   console.error("FATAL ERROR: GEMINI_API_KEY environment variable is not set.");
   process.exit(1);
 }
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-const modelText = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash-latest",
-});
-
-const generationConfigText = {
-  temperature: 0.7,
-  topP: 0.95,
-  topK: 40,
-  maxOutputTokens: 8192,
-
-  responseMimeType: "application/json",
-};
 
 router.post("/compare", upload.single("image"), async (req, res) => {
   if (!req.file) {
@@ -80,20 +66,35 @@ router.post("/compare", upload.single("image"), async (req, res) => {
     Information must be accurate and concise, focusing on major points.
     `;
 
-    const chatSession = modelText.startChat({
-      generationConfig: generationConfigText,
-    });
-    const infoResult = await chatSession.sendMessage(prompt);
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }],
+            },
+          ],
+        }),
+      }
+    );
+
+    const infoResult = await geminiResponse.json();
 
     let infoData = null;
     let rawText = "";
 
     try {
-      rawText = infoResult.response.text();
+      rawText = infoResult.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
       const cleanedText = rawText
-        .replace(/^json\s*/, "")
-        .replace(/\s*$/, "")
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/```$/, "")
         .trim();
 
       if (cleanedText) {
@@ -123,11 +124,9 @@ router.post("/compare", upload.single("image"), async (req, res) => {
     if (err.message === "Only image files are allowed!") {
       return res.status(400).json({ message: err.message });
     }
-    res
-      .status(500)
-      .json({
-        message: err.message || "An unexpected internal server error occurred.",
-      });
+    res.status(500).json({
+      message: err.message || "An unexpected internal server error occurred.",
+    });
   }
 });
 
