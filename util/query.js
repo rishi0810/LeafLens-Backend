@@ -11,7 +11,7 @@ async function query(imageBuffer) {
   while (attempt < MAX_RETRIES) {
     try {
       const response = await fetch(
-        "https://router.huggingface.co/hf-inference/models/Diginsa/Plant-Disease-Detection-Project",
+        "https://router.huggingface.co/hf-inference/models/linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification",
         {
           method: "POST",
           headers: {
