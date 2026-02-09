@@ -31,10 +31,13 @@ async function query(imageBuffer) {
       const result = await response.json();
 
       if (result.predictions && Array.isArray(result.predictions)) {
-        return result.predictions.map((pred) => ({
-          label: pred.label,
-          score: pred.confidence,
-        }));
+        return result.predictions
+          .map((pred) => ({
+            label: pred.label,
+            score: pred.confidence,
+          }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 5);
       }
 
       return result;
