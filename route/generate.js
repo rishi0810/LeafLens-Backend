@@ -45,7 +45,7 @@ router.post("/compare", upload.single("image"), async (req, res) => {
 
     const highest = analysisResults.reduce(
       (max, curr) => (curr.score > max.score ? curr : max),
-      analysisResults[0]
+      analysisResults[0],
     );
 
     const prompt = `
@@ -80,7 +80,7 @@ router.post("/compare", upload.single("image"), async (req, res) => {
             },
           ],
         }),
-      }
+      },
     );
 
     const infoResult = await geminiResponse.json();
